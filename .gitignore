@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+.env
+.DS_Store
+
+# AI tooling / internal artifacts (kept locally, not published)
+CLAUDE.md
+.ouroboros/
+.ouroboros_eval_artifact.md
+.vscode/
