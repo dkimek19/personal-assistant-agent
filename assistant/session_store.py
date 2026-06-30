@@ -181,42 +181,29 @@ class SessionStore:
         context_json = json.dumps(payload, ensure_ascii=False)
         now = _now_iso()
 
+        new_session_id = str(uuid.uuid4())
         with self._connect() as conn:
-            existing = conn.execute(
-                "SELECT session_id FROM sessions WHERE user_id = ?",
-                (user_id,),
+            conn.execute(
+                """
+                INSERT INTO sessions (user_id, session_id, context, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    context    = excluded.context,
+                    updated_at = excluded.updated_at
+                """,
+                (user_id, new_session_id, context_json, now, now),
+            )
+            row = conn.execute(
+                "SELECT session_id FROM sessions WHERE user_id = ?", (user_id,)
             ).fetchone()
+            session_id = row["session_id"]
 
-            if existing is None:
-                session_id = str(uuid.uuid4())
-                conn.execute(
-                    """
-                    INSERT INTO sessions (user_id, session_id, context, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?)
-                    """,
-                    (user_id, session_id, context_json, now, now),
-                )
-                logger.info(
-                    "upsert_session: created new session %s for user_id=%r",
-                    session_id,
-                    user_id,
-                )
-            else:
-                session_id = existing["session_id"]
-                conn.execute(
-                    """
-                    UPDATE sessions
-                    SET context = ?, updated_at = ?
-                    WHERE user_id = ?
-                    """,
-                    (context_json, now, user_id),
-                )
-                logger.info(
-                    "upsert_session: updated session %s for user_id=%r",
-                    session_id,
-                    user_id,
-                )
-
+        logger.info(
+            "upsert_session: %s session %s for user_id=%r",
+            "created" if session_id == new_session_id else "updated",
+            session_id,
+            user_id,
+        )
         return session_id
 
     def delete_session(self, user_id: str) -> bool:

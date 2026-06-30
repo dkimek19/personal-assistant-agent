@@ -250,10 +250,13 @@ class TestCalendarTodayEndpoint:
 
         assert response.status_code == 200
 
-        # Thin pass-through: dispatch_tool -> get_calendar_events called
-        # directly with today's date as both start and end, no LLM round-trip.
+        # Thin pass-through: dispatch_tool -> get_calendar_events called with
+        # timezone-aware start/end datetimes whose date portion is today.
+        mock_get_events.assert_called_once()
+        start, end = mock_get_events.call_args[0]
         today = date.today().isoformat()
-        mock_get_events.assert_called_once_with(today, today)
+        assert start.startswith(today)
+        assert end.startswith(today)
 
         body = response.json()
         assert body == {"events": [_CALENDAR_EVENT.to_dict()]}
@@ -309,10 +312,13 @@ class TestCalendarEndpoint:
 
         assert response.status_code == 200
 
-        # Thin pass-through: dispatch_tool -> get_calendar_events called
-        # directly with today's date as both start and end, no LLM round-trip.
+        # Thin pass-through: dispatch_tool -> get_calendar_events called with
+        # timezone-aware start/end datetimes whose date portion is today.
+        mock_get_events.assert_called_once()
+        start, end = mock_get_events.call_args[0]
         today = date.today().isoformat()
-        mock_get_events.assert_called_once_with(today, today)
+        assert start.startswith(today)
+        assert end.startswith(today)
 
         body = response.json()
         assert body == {"events": [_CALENDAR_EVENT.to_dict()]}

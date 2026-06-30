@@ -16,7 +16,7 @@ existing tool implementations -- no LLM round-trip is performed for them.
 from __future__ import annotations
 
 import os
-from datetime import date
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -31,6 +31,9 @@ from assistant.notes import NoteStore
 from assistant.session_resolver import CANONICAL_USER_ID
 from assistant.session_store import SessionStore
 from assistant.tools.dispatch import dispatch_tool
+
+_shared_session_store: SessionStore = SessionStore()
+_shared_note_store: NoteStore = NoteStore()
 
 app = FastAPI(title="Personal Assistant Agent — Web UI")
 
@@ -139,7 +142,7 @@ class HistoryResponse(BaseModel):
 
 def get_store() -> SessionStore:
     """FastAPI dependency providing the session store. Overridable in tests."""
-    return SessionStore()
+    return _shared_session_store
 
 
 def get_responder() -> Responder:
@@ -149,7 +152,7 @@ def get_responder() -> Responder:
 
 def get_note_store() -> NoteStore:
     """FastAPI dependency providing the note store. Overridable in tests."""
-    return NoteStore()
+    return _shared_note_store
 
 
 @app.get("/", include_in_schema=False)
@@ -249,8 +252,10 @@ def get_calendar_today() -> CalendarTodayResponse:
         HTTPException: 502 if the underlying calendar tool fails (e.g. the
             Google Calendar API is unreachable or credentials are invalid).
     """
-    today = date.today().isoformat()
-    result = dispatch_tool("get_calendar_events", {"start_date": today, "end_date": today})
+    now_local = datetime.now().astimezone()
+    start_of_day = now_local.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    end_of_day = now_local.replace(hour=23, minute=59, second=59, microsecond=0).isoformat()
+    result = dispatch_tool("get_calendar_events", {"start_date": start_of_day, "end_date": end_of_day})
 
     if result["tool_status"] != "success":
         raise HTTPException(

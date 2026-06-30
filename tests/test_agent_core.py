@@ -475,7 +475,7 @@ class TestHandleUserMessage:
 
         assert reply == "Hi!"
         mock_store_cls.assert_called_once_with()
-        mock_store.upsert_session.assert_called_once()
+        assert mock_store.upsert_session.call_count >= 1
 
     # ------------------------------------------------------------------
     # AC6.5 -- cross-interface context continuity

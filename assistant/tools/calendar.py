@@ -18,7 +18,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -88,7 +88,6 @@ def _compute_alert_time(event_start_iso: str) -> str:
             # Normalise to UTC-aware if naive
             if dt.tzinfo is None:
                 dt = dt.replace(tzinfo=timezone.utc)
-            from datetime import timedelta
             alert_dt = dt - timedelta(minutes=_MINUTES_BEFORE_ALERT)
             return alert_dt.isoformat()
         except ValueError:
@@ -96,7 +95,6 @@ def _compute_alert_time(event_start_iso: str) -> str:
 
     # Fall back: date-only all-day event  →  09:00 on the same day
     try:
-        from datetime import timedelta
         d = datetime.strptime(event_start_iso, "%Y-%m-%d")
         # Default 09:00 UTC as alert anchor for all-day events
         anchor = d.replace(hour=9, minute=0, second=0, tzinfo=timezone.utc)
@@ -320,7 +318,7 @@ def get_today_events(
         Propagated from :func:`get_calendar_events` if the Google Calendar
         API exhausts its retries.
     """
-    today_str = today if today is not None else datetime.now().date().isoformat()
+    today_str = today if today is not None else datetime.now(timezone.utc).date().isoformat()
 
     events = get_calendar_events(
         today_str,

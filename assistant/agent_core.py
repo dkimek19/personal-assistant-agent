@@ -318,7 +318,14 @@ def handle_user_message(
         {"role": "user", "content": message_text, "source_interface": source_interface}
     )
 
-    reply = command_reply if command_reply is not None else responder(working_memory)
+    if command_reply is not None:
+        reply = command_reply
+    else:
+        # Persist the user message before the LLM call so it is not lost if the call fails.
+        context["working_memory"] = working_memory
+        context["source_interface"] = source_interface
+        store.upsert_session(resolved.user_id, context)
+        reply = responder(working_memory)
 
     working_memory.append(
         {"role": "assistant", "content": reply, "source_interface": source_interface}
