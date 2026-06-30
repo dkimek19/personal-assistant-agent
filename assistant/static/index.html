@@ -534,6 +534,31 @@
     background-color: var(--border-color);
     border-radius: 4px;
   }
+
+  /* Typing indicator */
+  .typing-bubble {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    padding: 14px 18px;
+  }
+
+  .typing-bubble span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: var(--text-muted);
+    animation: typing-bounce 1.2s infinite ease-in-out;
+  }
+
+  .typing-bubble span:nth-child(1) { animation-delay: 0s; }
+  .typing-bubble span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-bubble span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes typing-bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30%            { transform: translateY(-6px); opacity: 1; }
+  }
 </style>
 </head>
 <body>
@@ -1435,6 +1460,31 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     return renderHistory([{ role: role, content: content }])[0];
   }
 
+  function showTypingIndicator() {
+    var messageList = document.getElementById('message-list');
+    var emptyState = document.getElementById('empty-state');
+    if (emptyState) emptyState.style.display = 'none';
+
+    var wrapper = document.createElement('div');
+    wrapper.className = 'message message-assistant';
+    wrapper.id = 'typing-indicator';
+
+    var bubble = document.createElement('div');
+    bubble.className = 'message-bubble typing-bubble';
+    bubble.innerHTML = '<span></span><span></span><span></span>';
+
+    wrapper.appendChild(bubble);
+    messageList.appendChild(wrapper);
+
+    var chatMessages = document.getElementById('chat-messages');
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  function removeTypingIndicator() {
+    var el = document.getElementById('typing-indicator');
+    if (el) el.parentNode.removeChild(el);
+  }
+
   function setSending(isSending) {
     sendBtn.disabled = isSending;
     chatInput.disabled = isSending;
@@ -1458,12 +1508,15 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   function sendMessage(text) {
     appendMessage('user', text);
     setSending(true);
+    showTypingIndicator();
 
     return sendChatMessage(text)
       .then(function (data) {
+        removeTypingIndicator();
         appendMessage('assistant', (data && data.reply) || '');
       })
       .catch(function (err) {
+        removeTypingIndicator();
         appendMessage('assistant', '*Error: ' + err.message + '*');
       })
       .finally(function () {
